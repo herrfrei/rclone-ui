@@ -3,7 +3,7 @@ name: 'release-personal'
 on:
   push:
     branches:
-      - personal_changes
+      - personal-edition
   workflow_dispatch:
 
 env:
