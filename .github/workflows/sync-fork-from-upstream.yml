@@ -1,0 +1,76 @@
+name: 'sync-fork-from-upstream'
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout personal_changes
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: personal_changes
+
+      - name: Mirror main from upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/rclone-ui/rclone-ui.git
+          git fetch upstream
+          git fetch origin main
+
+          BEFORE=$(git rev-parse origin/main)
+          AFTER=$(git rev-parse upstream/main)
+
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "main already matches upstream/main, nothing to mirror"
+            echo "UPSTREAM_CHANGED=false" >> $GITHUB_ENV
+          else
+            git push origin "upstream/main:refs/heads/main" --force-with-lease
+            echo "UPSTREAM_CHANGED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Merge main into personal_changes
+        if: env.UPSTREAM_CHANGED == 'true'
+        run: |
+          git fetch origin main
+          git checkout personal_changes
+
+          if git merge origin/main --no-edit; then
+            git push origin personal_changes
+            echo "MERGE_STATUS=success" >> $GITHUB_ENV
+          else
+            git merge --abort
+            echo "MERGE_STATUS=conflict" >> $GITHUB_ENV
+          fi
+
+      - name: Open sync PR on merge conflict
+        if: env.UPSTREAM_CHANGED == 'true' && env.MERGE_STATUS == 'conflict'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::warning::Merge conflict detected — opening/refreshing sync PR."
+
+          # Reuse existing open sync PR if one exists, otherwise create one.
+          EXISTING=$(gh pr list --base personal_changes --head main --state open --json number --jq '.[0].number')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Existing sync PR #$EXISTING is still open — leaving it in place."
+            gh pr comment "$EXISTING" --body "Another upstream sync attempted on $(date -u +%Y-%m-%d) and still conflicts. Please resolve."
+          else
+            gh pr create \
+              --base personal_changes \
+              --head main \
+              --title "sync: upstream main has conflicts with personal_changes" \
+              --body "The nightly sync workflow could not auto-merge \`main\` (upstream mirror) into \`personal_changes\`.
+
+          Resolve the conflicts in the GitHub web editor or locally, then merge this PR. Once merged, the nightly sync will resume clean merges automatically."
+          fi
