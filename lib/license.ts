@@ -1,10 +1,10 @@
-import { invoke } from '@tauri-apps/api/core'
-import { fetch } from '@tauri-apps/plugin-http'
-import { platform } from '@tauri-apps/plugin-os'
+// import { invoke } from '@tauri-apps/api/core'
+// import { fetch } from '@tauri-apps/plugin-http'
+// import { platform } from '@tauri-apps/plugin-os'
 import { usePersistedStore } from '../store/persisted'
 
 export async function validateLicense(licenseKey: string) {
-    console.log('[validateLicense]')
+    console.log('[validateLicense]', licenseKey)
 
     usePersistedStore.setState({ licenseKey, licenseValid: true })
 
@@ -12,7 +12,7 @@ export async function validateLicense(licenseKey: string) {
 }
 
 export async function revokeMachineLicense(licenseKey: string) {
-    console.log('[revokeMachineLicense]')
+    console.log('[revokeMachineLicense]', licenseKey)
 
     usePersistedStore.setState({ licenseKey: undefined, licenseValid: false })
 
