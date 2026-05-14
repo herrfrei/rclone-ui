@@ -73,6 +73,7 @@
         "windows": {
             "nsis": {
                 "installMode": "both"
+            }
         },
         "linux": {
             "deb": {
