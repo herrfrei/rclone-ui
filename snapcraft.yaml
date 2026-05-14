@@ -1,6 +1,6 @@
 name: rclone-ui
 base: core22
-version: '3.5.4'
+version: '3.5.5'
 summary: Cross-platform GUI for rclone & S3
 description: |
   The best way to manage your rclone remotes & tasks in a light and easy way.
