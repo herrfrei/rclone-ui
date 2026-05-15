@@ -13,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout personal_changes
+      - name: Checkout personal-edition
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: personal_changes
+          ref: personal-edition
 
       - name: Mirror main from upstream
         run: |
@@ -38,14 +38,14 @@ jobs:
             echo "UPSTREAM_CHANGED=true" >> $GITHUB_ENV
           fi
 
-      - name: Merge main into personal_changes
+      - name: Merge main into personal-edition
         if: env.UPSTREAM_CHANGED == 'true'
         run: |
           git fetch origin main
-          git checkout personal_changes
+          git checkout personal-edition
 
           if git merge origin/main --no-edit; then
-            git push origin personal_changes
+            git push origin personal-edition
             echo "MERGE_STATUS=success" >> $GITHUB_ENV
           else
             git merge --abort
@@ -60,17 +60,17 @@ jobs:
           echo "::warning::Merge conflict detected — opening/refreshing sync PR."
 
           # Reuse existing open sync PR if one exists, otherwise create one.
-          EXISTING=$(gh pr list --base personal_changes --head main --state open --json number --jq '.[0].number')
+          EXISTING=$(gh pr list --base personal-edition --head main --state open --json number --jq '.[0].number')
 
           if [ -n "$EXISTING" ]; then
             echo "Existing sync PR #$EXISTING is still open — leaving it in place."
             gh pr comment "$EXISTING" --body "Another upstream sync attempted on $(date -u +%Y-%m-%d) and still conflicts. Please resolve."
           else
             gh pr create \
-              --base personal_changes \
+              --base personal-edition \
               --head main \
-              --title "sync: upstream main has conflicts with personal_changes" \
-              --body "The nightly sync workflow could not auto-merge \`main\` (upstream mirror) into \`personal_changes\`.
+              --title "sync: upstream main has conflicts with personal-edition" \
+              --body "The nightly sync workflow could not auto-merge \`main\` (upstream mirror) into \`personal-edition\`.
 
           Resolve the conflicts in the GitHub web editor or locally, then merge this PR. Once merged, the nightly sync will resume clean merges automatically."
           fi
