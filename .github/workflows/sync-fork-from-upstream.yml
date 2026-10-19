@@ -57,17 +57,21 @@ jobs:
       - name: Open sync PR on merge conflict
         if: env.UPSTREAM_CHANGED == 'true' && env.MERGE_STATUS == 'conflict'
         env:
-          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GH_TOKEN: \${{ secrets.SYNC_TOKEN }}
         run: |
           echo "::warning::Merge conflict detected — opening/refreshing sync PR."
 
-          # Reuse existing open sync PR if one exists, otherwise create one.
-          EXISTING=$(gh pr list --base personal-edition --head main --state open --json number --jq '.[0].number')
+          # Wichtig: Den gespiegelten Zustand von main pushen, damit GitHub die Commits kennt
+          git push origin refs/remotes/upstream/main:refs/heads/main --force-with-lease || true
 
-          if [ -n "$EXISTING" ]; then
-            echo "Existing sync PR #$EXISTING is still open — leaving it in place."
-            gh pr comment "$EXISTING" --body "Another upstream sync attempted on $(date -u +%Y-%m-%d) and still conflicts. Please resolve."
+          # Prüfen, ob bereits ein offener PR existiert
+          EXISTING=\$(gh pr list --base personal-edition --head main --state open --json number --jq '.[0].number')
+
+          if [ -n "\$EXISTING" ]; then
+            echo "Existing sync PR #\$EXISTING is still open — leaving it in place."
+            gh pr comment "\$EXISTING" --body "Another upstream sync attempted on \$(date -u +%Y-%m-%d) and still conflicts. Please resolve."
           else
+            # PR erstellen
             gh pr create \
               --base personal-edition \
               --head main \
